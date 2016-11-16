@@ -140,7 +140,7 @@ if (MSVC)
     ADD_DEFINITIONS( -DBOOST_ALL_DYN_LINK )
 else()
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D${OS} ${OS_CXX_FLAGS} -DUSE_VSOMEIP_STATISTICS -DBOOST_LOG_DYN_LINK -g ${OPTIMIZE} -std=c++0x ${NO_DEPRECATED} ${EXPORTSYMBOLS}")
-    set(USE_RT "rt")
+    #    set(USE_RT "rt")
 endif()
 
 add_library(vsomeip SHARED ${vsomeip_SRC})
