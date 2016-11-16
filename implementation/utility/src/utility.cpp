@@ -32,6 +32,13 @@
         #include <Windows.h>
     #endif
 #endif
+int shm_open(const char *name, int oflag, mode_t mode){
+  return open(name, oflag, mode);
+}
+
+int shm_unlink(const char *name){
+  return unlink(name);
+}
 
 namespace vsomeip {
 
