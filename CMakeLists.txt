@@ -160,7 +160,11 @@ else()
     #    set(USE_RT "rt")
 endif()
 
-add_library(vsomeip STATIC ${vsomeip_SRC})
+if (${STATIC_BUILD} MATCHES "ON")
+  add_library(vsomeip STATIC ${vsomeip_SRC})
+else()
+  add_library(vsomeip SHARED ${vsomeip_SRC})
+endif()
 set_target_properties (vsomeip PROPERTIES VERSION ${VSOMEIP_VERSION} SOVERSION ${VSOMEIP_MAJOR_VERSION})
 # PRIVATE means the listed libraries won't be included in the "link interface",
 # meaning the exported vsomeipTargets.cmake targets won't try to link against
@@ -175,7 +179,11 @@ file(GLOB vsomeip-cfg_SRC
 )
 list(SORT vsomeip-cfg_SRC)
 
-add_library(vsomeip-cfg STATIC ${vsomeip-cfg_SRC})
+if (${STATIC_BUILD} MATCHES "ON")
+  add_library(vsomeip-cfg STATIC ${vsomeip-cfg_SRC})
+else()
+  add_library(vsomeip-cfg SHARED ${vsomeip-cfg_SRC})
+endif()
 set_target_properties (vsomeip-cfg PROPERTIES VERSION ${VSOMEIP_VERSION} SOVERSION ${VSOMEIP_MAJOR_VERSION})
 target_link_libraries(vsomeip-cfg vsomeip ${Boost_LIBRARIES} ${USE_RT} ${DL_LIBRARY} ${SystemD_LIBRARIES})
 
@@ -184,7 +192,11 @@ file(GLOB vsomeip-sd_SRC
 )
 list(SORT vsomeip-sd_SRC)
 
-add_library(vsomeip-sd STATIC ${vsomeip-sd_SRC})
+if (${STATIC_BUILD} MATCHES "ON")
+  add_library(vsomeip-sd STATIC ${vsomeip-sd_SRC})
+else()
+  add_library(vsomeip-sd SHARED ${vsomeip-sd_SRC})
+endif()
 set_target_properties (vsomeip-sd PROPERTIES VERSION ${VSOMEIP_VERSION} SOVERSION ${VSOMEIP_MAJOR_VERSION})
 target_link_libraries(vsomeip-sd vsomeip ${Boost_LIBRARIES} ${USE_RT} ${DL_LIBRARY} ${SystemD_LIBRARIES})
 
