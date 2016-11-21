@@ -90,12 +90,14 @@ void * utility::load_library(const std::string &_path,
         std::cerr << "Loading interface library \"" << path << "\" failed (" << GetLastError() << ")" << std::endl;
     }
 #else
+#if not defined(STATIC_BUILD)
     void *handle = dlopen(_path.c_str(), RTLD_LAZY | RTLD_GLOBAL);
     if (0 != handle) {
         its_symbol = dlsym(handle, _symbol.c_str());
     } else {
         VSOMEIP_ERROR << "Loading failed: (" << dlerror() << ")";
     }
+#endif
 #endif
     return (its_symbol);
 }
