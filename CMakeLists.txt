@@ -13,7 +13,7 @@ set (VSOMEIP_VERSION ${VSOMEIP_MAJOR_VERSION}.${VSOMEIP_MINOR_VERSION}.${VSOMEIP
 set (PACKAGE_VERSION ${VSOMEIP_VERSION}) # Used in documentatin/doxygen.in
 set (CMAKE_VERBOSE_MAKEFILE off)
 
-set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${TOOLCHAIN_FLAGS}")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${TOOLCHAIN_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TOOLCHAIN_FLAGS}")
 ###################################################################################################
 # see http://www.cmake.org/Wiki/CMake/Tutorials/How_to_create_a_ProjectConfig.cmake_file
