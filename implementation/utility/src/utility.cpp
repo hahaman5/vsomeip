@@ -32,13 +32,21 @@
         #include <Windows.h>
     #endif
 #endif
+#ifdef ANDROID_BUILD
 int shm_open(const char *name, int oflag, mode_t mode){
-  return open(name, oflag, mode);
+  std::string _name = "./tmp/";
+  _name.append(name);
+  _name.append("-shmem");
+  return open(_name.c_str(), oflag, mode);
 }
 
 int shm_unlink(const char *name){
-  return unlink(name);
+  std::string _name = "./tmp/";
+  _name.append(name);
+  _name.append("-shmem");
+  return unlink(_name.c_str());
 }
+#endif
 
 namespace vsomeip {
 
