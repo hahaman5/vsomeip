@@ -82,6 +82,17 @@ bool application_impl::init() {
     if (nullptr != its_config_module) {
         // TODO: Add loading of custom configuration module
     } else { // load default module
+#ifdef STATIC_BUILD
+        std::shared_ptr<configuration> its_configuration =
+          vsomeip::configuration::get();
+        if (its_configuration){
+            configuration_ = its_configuration;
+            configuration_->load(name_);
+            VSOMEIP_INFO << "Default configuration module loaded.";
+        } else {
+          exit(-1);
+        }
+#else
         std::shared_ptr<configuration> *its_configuration =
                 static_cast<std::shared_ptr<configuration> *>(utility::load_library(
                         VSOMEIP_CFG_LIBRARY,
@@ -94,6 +105,7 @@ bool application_impl::init() {
         } else {
             exit(-1);
         }
+#endif
     }
 
     std::shared_ptr<configuration> its_configuration = get_configuration();

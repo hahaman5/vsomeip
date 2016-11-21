@@ -77,6 +77,15 @@ void routing_manager_impl::init() {
 
     if (configuration_->is_sd_enabled()) {
         VSOMEIP_INFO<< "Service Discovery enabled. Trying to load module.";
+#ifdef STATIC_BUILD
+        std::shared_ptr<sd::runtime> its_runtime =
+          vsomeip::sd::runtime::get();
+        if (its_runtime) {
+            VSOMEIP_INFO << "Service Discovery module loaded.";
+            discovery_ = (its_runtime)->create_service_discovery(this);
+            discovery_->init();
+        }
+#else
         std::shared_ptr<sd::runtime> *its_runtime =
                 static_cast<std::shared_ptr<sd::runtime> *>(utility::load_library(
                         VSOMEIP_SD_LIBRARY,
@@ -87,6 +96,7 @@ void routing_manager_impl::init() {
             discovery_ = (*its_runtime)->create_service_discovery(this);
             discovery_->init();
         }
+#endif
     } else {
         init_routing_info(); // Static routing
     }
