@@ -15,6 +15,11 @@ set (CMAKE_VERBOSE_MAKEFILE off)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${TOOLCHAIN_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TOOLCHAIN_FLAGS}")
+
+if (${STATIC_BUILD} MATCHES "ON")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DSTATIC_BUILD")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSTATIC_BUILD")
+endif (${STATIC_BUILD} MATCHES "ON")
 ###################################################################################################
 # see http://www.cmake.org/Wiki/CMake/Tutorials/How_to_create_a_ProjectConfig.cmake_file
 ###################################################################################################
