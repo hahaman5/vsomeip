@@ -79,3 +79,14 @@ To compile vsomeip with signal handling (SIGINT/SIGTERM) enabled, call cmake lik
 cmake -DENABLE_SIGNAL_HANDLING=1 ..
 ```
 In the default setting, the application has to take care of shutting down vsomeip in case these signals are received.
+
+###### Cross-compilation for Android using crystax
+You need to copy libm.a from ndk since crystax has empty libm.a.
+If you want to change toolchain location, fix `CMAKE_FIND_ROOT_PATH` in toolchain cmake file.
+```bash
+mkdir build
+cd build
+cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-android-4.4.cmake ..
+make
+```
+
