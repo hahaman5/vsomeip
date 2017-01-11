@@ -1,5 +1,5 @@
 {
-    "unicast" : "192.168.50.31",
+    "unicast" : "10.0.2.15",
     "logging" :
     { 
         "level" : "debug",
@@ -12,6 +12,10 @@
         {
             "name" : "service-sample",
             "id" : "0x1277"
+        },
+        {    
+            "name" : "client-sample",
+            "id" : "0x1344"
         }
     ],
     "services" :
@@ -20,20 +24,25 @@
             "service" : "0x1234",
             "instance" : "0x5678",
             "unreliable" : "30509",
+            "multicast" : 
+            { 
+                "address" : "224.225.226.233", 
+                "port" : "32344"
+            },
             "events" : 
             [
                 {
-                    "event" : "0x8777",
+                    "event" : "0x0777",
                     "is_field" : "true",
                     "update-cycle" : 2000
                 },
                 {
-                    "event" : "0x8778",
+                    "event" : "0x0778",
                     "is_field" : "true",
                     "update-cycle" : 0
                 },
                 {
-                    "event" : "0x8779",
+                    "event" : "0x0779",
                     "is_field" : "true"
                 }
             ],
@@ -41,33 +50,18 @@
             [
                 {
                     "eventgroup" : "0x4455",
-                    "events" : [ "0x8777", "0x8778" ]
-
+                    "events" : [ "0x777", "0x778" ]
                 },
                 {
                     "eventgroup" : "0x4465",
-                    "events" : [ "0x8778", "0x8779" ],
-                    "multicast" : 
-                    { 
-                        "address" : "224.225.226.233", 
-                        "port" : "32344"
-                    }
+                    "events" : [ "0x778", "0x779" ],
+                    "is_multicast" : "true"                                        
                 },
                 {
                     "eventgroup" : "0x4555",
-                    "events" : [ "0x8777", "0x8779" ] 
+                    "events" : [ "0x777", "0x779" ] 
                 }
             ]
-        },
-        {
-            "service" : "0x1235",
-            "instance" : "0x5678",
-            "unreliable" : "30509",
-            "multicast" : 
-            { 
-                "address" : "224.225.226.234", 
-                "port" : "32344"
-            }
         }
     ],
     "routing" : "service-sample",

@@ -4,7 +4,7 @@ SET(CMAKE_SYSTEM_NAME Android)
 SET(CMAKE_SYSTEM_VERSION 1)
 
 # where is the target environment
-SET(CMAKE_FIND_ROOT_PATH  /opt/data/android-someip/toolchain-4.9)
+SET(CMAKE_FIND_ROOT_PATH  /home/rtst/toolchain-4.9)
 
 # specify the cross compiler
 SET(CMAKE_C_COMPILER   "${CMAKE_FIND_ROOT_PATH}/bin/arm-linux-androideabi-gcc")

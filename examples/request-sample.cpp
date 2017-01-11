@@ -27,7 +27,8 @@ public:
           running_(true),
           blocked_(false),
           is_available_(false),
-          sender_(std::bind(&client_sample::run, this)) {
+          sender_(std::bind(&client_sample::run, this)),
+          offer_(std::bind(&client_sample::run_offer, this)) {
     }
 
     void init() {
@@ -49,7 +50,7 @@ public:
                     std::placeholders::_1));
 
         app_->register_message_handler(
-                vsomeip::ANY_SERVICE, SAMPLE_INSTANCE_ID, vsomeip::ANY_METHOD,
+                SAMPLE_SERVICE_ID, SAMPLE_INSTANCE_ID, vsomeip::ANY_METHOD,
                 std::bind(&client_sample::on_message,
                           this,
                           std::placeholders::_1));
@@ -59,8 +60,8 @@ public:
         request_->set_method(SAMPLE_METHOD_ID);
 
         std::shared_ptr< vsomeip::payload > its_payload = vsomeip::runtime::get()->create_payload();
-        std::vector< vsomeip::byte_t > its_payload_data;
-        for (std::size_t i = 0; i < 10; ++i) its_payload_data.push_back(i % 256);
+        std::string str = "testDev|1234";
+        std::vector< vsomeip::byte_t > its_payload_data(str.begin(), str.end());
         its_payload->set_data(its_payload_data);
         request_->set_payload(its_payload);
 
@@ -69,11 +70,11 @@ public:
                           this,
                           std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
-        app_->register_availability_handler(SAMPLE_SERVICE_ID + 1, SAMPLE_INSTANCE_ID,
-                std::bind(&client_sample::on_availability,
+        app_->register_message_handler(
+                CONTROL_SERVICE_ID, CONTROL_INSTANCE_ID, vsomeip::ANY_METHOD,
+                std::bind(&client_sample::on_message_ctl,
                           this,
-                          std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-
+                          std::placeholders::_1));
     }
 
     void start() {
@@ -94,8 +95,14 @@ public:
 #endif
 
     void on_state(vsomeip::state_type_e _state) {
+        std::cout << "Application " << app_->get_name() << " is "
+                << (_state == vsomeip::state_type_e::ST_REGISTERED ?
+                        "registered." : "deregistered.")
+                << std::endl;
         if (_state == vsomeip::state_type_e::ST_REGISTERED) {
             app_->request_service(SAMPLE_SERVICE_ID, SAMPLE_INSTANCE_ID);
+            blocked_ = true;
+            condition_.notify_one();
         }
     }
 
@@ -111,7 +118,7 @@ public:
                 is_available_ = false;
             } else if (_is_available && !is_available_) {
                 is_available_ = true;
-                send();
+                //send();
             }
         }
     }
@@ -127,25 +134,13 @@ public:
                 << std::setw(4) << std::setfill('0') << std::hex << _response->get_session()
                 << "]"
                 << std::endl;
-        if (is_available_)
-            send();
     }
 
-    void send() {
-        if (!be_quiet_)
-        {
-            std::lock_guard< std::mutex > its_lock(mutex_);
-            blocked_ = true;
-            condition_.notify_one();
-        }
-    }
 
     void run() {
         while (running_) {
             {
-                std::unique_lock<std::mutex> its_lock(mutex_);
-                while (!blocked_) condition_.wait(its_lock);
-                std::this_thread::sleep_for(std::chrono::milliseconds(cycle_));
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 if (is_available_) {
                     app_->send(request_, true);
                     std::cout << "Client/Session ["
@@ -158,13 +153,42 @@ public:
                             << std::setw(4) << std::setfill('0') << std::hex << request_->get_instance()
                             << "]"
                             << std::endl;
-                    blocked_ = false;
                 }
 
             }
         }
     }
 
+    //member func for control service
+    void on_message_ctl(const std::shared_ptr<vsomeip::message> &_request) {
+        std::cout << "Received a steering message with Client/Session [" << std::setw(4)
+            << std::setfill('0') << std::hex << _request->get_client() << "/"
+            << std::setw(4) << std::setfill('0') << std::hex
+            << _request->get_session() << "]"
+            << std::endl;
+
+		std::shared_ptr< vsomeip::payload > its_payload = _request->get_payload();
+		vsomeip::byte_t *arr= its_payload->get_data();
+        int len =  its_payload->get_length(); 
+        int angle = 0;
+        for(int i=0; i< len; ++i){
+            std::cout << std::setw(2) << std::setfill('0') << std::hex << (unsigned int)arr[i] << " ";
+            angle = angle << 8;
+            angle |= arr[i];
+        }
+        std::cout << std::endl;
+
+        std::cout << "Received steering angle: " << std::dec << angle << std::endl;
+    }
+
+    void run_offer() {
+        std::unique_lock<std::mutex> its_lock(mutex_);
+        while (!blocked_)
+            condition_.wait(its_lock);
+
+        app_->offer_service(CONTROL_SERVICE_ID, CONTROL_INSTANCE_ID);
+        while (running_);
+    }
 private:
     std::shared_ptr< vsomeip::application > app_;
     std::shared_ptr< vsomeip::message > request_;
@@ -180,6 +204,9 @@ private:
     std::map<int, std::string> dev_map;
 
     std::thread sender_;
+    std::thread offer_;
+
+    //members for control service
 };
 
 #ifndef VSOMEIP_ENABLE_SIGNAL_HANDLING

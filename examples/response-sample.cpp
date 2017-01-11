@@ -25,8 +25,8 @@ class service_sample {
 public:
     service_sample(bool _use_static_routing) :
             app_(vsomeip::runtime::get()->create_application()),
-            request_(vsomeip::runtime::get()->create_request(false)),
             is_registered_(false),
+            request_(vsomeip::runtime::get()->create_request(false)),
             use_static_routing_(_use_static_routing),
             blocked_(false),
             running_(true),
@@ -61,9 +61,9 @@ public:
                 std::bind(&service_sample::on_message_resp, this,
                         std::placeholders::_1));
                         */
-        request_->set_service(SAMPLE_SERVICE_ID);
-        request_->set_instance(SAMPLE_INSTANCE_ID);
-        request_->set_method(SAMPLE_METHOD_ID);
+        request_->set_service(CONTROL_SERVICE_ID);
+        request_->set_instance(CONTROL_INSTANCE_ID);
+        request_->set_method(CONTROL_METHOD_ID);
 
         app_->register_availability_handler(CONTROL_SERVICE_ID, CONTROL_INSTANCE_ID,
                 std::bind(&service_sample::on_availability,
@@ -90,12 +90,10 @@ public:
 
     void offer() {
         app_->offer_service(SAMPLE_SERVICE_ID, SAMPLE_INSTANCE_ID);
-        app_->offer_service(SAMPLE_SERVICE_ID + 1, SAMPLE_INSTANCE_ID);
     }
 
     void stop_offer() {
         app_->stop_offer_service(SAMPLE_SERVICE_ID, SAMPLE_INSTANCE_ID);
-        app_->stop_offer_service(SAMPLE_SERVICE_ID + 1, SAMPLE_INSTANCE_ID);
     }
 
     void on_state(vsomeip::state_type_e _state) {
@@ -109,7 +107,9 @@ public:
                 is_registered_ = true;
                 blocked_ = true;
                 condition_.notify_one();
+                condition_map.notify_one();
             }
+            app_->request_service(CONTROL_SERVICE_ID, CONTROL_INSTANCE_ID);
         } else {
             is_registered_ = false;
         }
@@ -126,6 +126,8 @@ public:
 		vsomeip::byte_t *arr= its_payload->get_data();
         uint32_t len = its_payload->get_length();
         std::string str((char *)arr,len);
+
+        std::cout << "Received dev name|ID: " <<  str << std::endl;
 		
         std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
         now += std::chrono::seconds(5);
@@ -173,22 +175,32 @@ public:
     }
 
     void run_map_mgr() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
         while(1){
             std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
             bool is_mod = false;
+
+            std::cout << "Garbage: ";
             for(auto it = dev_map.begin(); it != dev_map.end();) {
+                std::cout << it->first << "-";
                 if(it->second <= now){
-                    it = dev_map.erase(it);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
                     std::cout << it->first << " is timed out" << std::endl;
+                    it = dev_map.erase(it);
                     is_mod = true;
+                    it++;
                 }else{
                     it++;
                 }
+                std::cout << " ";
             }
 
             if(is_mod){
                 send_dev_map();
                 is_mod = false;
+                std::cout << "Clear\n";
+            }else{
+                std::cout << "Nothing\n";
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
@@ -224,16 +236,29 @@ public:
             if(is_available_ && old_val != steer_angle){
                 std::shared_ptr< vsomeip::payload > its_payload = vsomeip::runtime::get()->create_payload();
                 unsigned char bytes[sizeof steer_angle];
-                std::copy(static_cast<const char*>(static_cast<const void*>(&steer_angle)),
-                        static_cast<const char*>(static_cast<const void*>(&steer_angle)) + sizeof steer_angle,
-                        bytes);
 
-                std::vector< vsomeip::byte_t > its_payload_data(std::begin(bytes),std::end(bytes));
+                int angle = steer_angle;
+                for(int i=sizeof steer_angle; i>0; --i){
+                    bytes[i-1] = (unsigned char)(angle & 0xff);
+                    angle = angle >> 8;
+                }
+
+                for(int i=0;i < sizeof steer_angle; ++i)
+                    std::cout << std::setw(2) << std::setfill('0') << std::hex << (unsigned int)bytes[i] << " ";
+                std::cout << std::endl;
+
+                its_payload->set_data(bytes, sizeof steer_angle);
                 request_->set_payload(its_payload);
                 app_->send(request_, true);
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                old_val = steer_angle;
+            }else{
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+                steer_angle +=100;
+                if(steer_angle > 500) steer_angle = -500;
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     }
 
@@ -257,6 +282,7 @@ private:
     bool is_available_;
     std::thread thr_sender_;
     int steer_angle;
+    std::condition_variable condition_map;
 };
 
 #ifndef VSOMEIP_ENABLE_SIGNAL_HANDLING
