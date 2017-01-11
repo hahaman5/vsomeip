@@ -73,6 +73,7 @@ public:
                 std::bind(&client_sample::on_availability,
                           this,
                           std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
     }
 
     void start() {
@@ -176,6 +177,7 @@ private:
     bool running_;
     bool blocked_;
     bool is_available_;
+    std::map<int, std::string> dev_map;
 
     std::thread sender_;
 };

@@ -9,6 +9,9 @@
 #define SAMPLE_SERVICE_ID       0x1234
 #define SAMPLE_INSTANCE_ID      0x5678
 #define SAMPLE_METHOD_ID        0x0421
+#define CONTROL_SERVICE_ID       0x8765
+#define CONTROL_INSTANCE_ID      0x4321
+#define CONTROL_METHOD_ID        0xbeef
 
 #define SAMPLE_EVENT_ID         0x8778
 #define SAMPLE_GET_METHOD_ID    0x0001
