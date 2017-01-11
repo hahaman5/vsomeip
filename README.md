@@ -86,7 +86,7 @@ If you want to change toolchain location, fix `CMAKE_FIND_ROOT_PATH` in toolchai
 ```bash
 mkdir build
 cd build
-cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-android-4.4.cmake ..
+cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-android-4.4.cmake -DENABLE_SIGNAL_HANDLING=1 ..
 make
 ```
 
