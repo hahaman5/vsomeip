@@ -10,8 +10,8 @@
     "applications" : 
     [
         {
-            "name" : "service-sample",
-            "id" : "0x1277"
+            "name" : "lidar-sample",
+            "id" : "0x1288"
         }
     ],
     "services" :
@@ -70,7 +70,7 @@
             }
         }
     ],
-    "routing" : "service-sample",
+    "routing" : "lidar-sample",
     "service-discovery" :
     {
         "enable" : "true",

@@ -12,6 +12,10 @@
 #define CONTROL_SERVICE_ID       0x8765
 #define CONTROL_INSTANCE_ID      0x4321
 #define CONTROL_METHOD_ID        0xbeef
+#define LIDAR_SERVICE_ID       0x0248
+#define LIDAR_INSTANCE_ID      0x5422
+#define LIDAR_METHOD_ID        0x1421
+#define LIDAR_ADDRESS           "192.168.101.111:12345"
 
 #define SAMPLE_EVENT_ID         0x8778
 #define SAMPLE_GET_METHOD_ID    0x0001

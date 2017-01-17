@@ -18,8 +18,14 @@
 #include <vsomeip/vsomeip.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
+#include <utility>
+#include <boost/asio.hpp>
 
 #include "sample-ids.hpp"
+
+using boost::asio::ip::tcp;
+
+static bool is_example;
 
 class service_sample {
 public:
@@ -34,6 +40,7 @@ public:
             steer_angle(0),
             offer_thread_(std::bind(&service_sample::run, this)),
             thr_sender_(std::bind(&service_sample::sender, this)),
+            dev_send_thread_(std::bind(&service_sample::send_dev_map, this)), 
             dev_mgr_thread_(std::bind(&service_sample::run_map_mgr, this)) {
     }
 
@@ -41,6 +48,18 @@ public:
         std::lock_guard<std::mutex> its_lock(mutex_);
 
         app_->init();
+
+        if(is_example){
+            std::string dev_examples[] = {"example1|aaaa", "example2|bbbb", "example3|cccc", "example4|dddd"};
+
+            for(int i=0;i<4;++i){
+                std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+                now += std::chrono::seconds(30+10 * i);
+                dev_map[dev_examples[i]] = now;
+            }
+        }
+
+
         app_->register_state_handler(
                 std::bind(&service_sample::on_state, this,
                         std::placeholders::_1));
@@ -132,7 +151,7 @@ public:
         std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
         now += std::chrono::seconds(5);
         dev_map[str] = now;
-        send_dev_map();
+        //send_dev_map();
 
 /*
         std::shared_ptr<vsomeip::message> its_response
@@ -180,9 +199,7 @@ public:
             std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
             bool is_mod = false;
 
-            std::cout << "Garbage: ";
             for(auto it = dev_map.begin(); it != dev_map.end();) {
-                std::cout << it->first << "-";
                 if(it->second <= now){
                     std::this_thread::sleep_for(std::chrono::milliseconds(100));
                     std::cout << it->first << " is timed out" << std::endl;
@@ -196,11 +213,8 @@ public:
             }
 
             if(is_mod){
-                send_dev_map();
+                //send_dev_map();
                 is_mod = false;
-                std::cout << "Clear\n";
-            }else{
-                std::cout << "Nothing\n";
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
@@ -209,6 +223,41 @@ public:
 
     void send_dev_map() {
         /* TODO: write some code to send dev_map to head unit app */
+        tcp::acceptor a(io_service_dev, tcp::endpoint(tcp::v4(), 5689));
+        for (;;)
+        {
+            tcp::socket sock(io_service_dev);
+            a.accept(sock);
+            while(true){
+                char data[100];
+
+                boost::system::error_code error;
+                size_t length = sock.read_some(boost::asio::buffer(data), error);
+
+                if (error == boost::asio::error::eof)
+                    break; // Connection closed cleanly by peer.
+                else if (error)
+                    continue;
+
+                std::cout << "sending list\n";
+                int len = dev_map.size();
+
+                std::stringstream ss;
+                ss << len << std::endl;
+                for(auto it = dev_map.begin(); it != dev_map.end();) {
+                    ss << it->first << std::endl;
+                    std::cout << "element : " << it->first << std::endl;
+                    it++;
+                }
+                ss << "FIN" << std::endl;
+
+                std::string str(ss.str());
+                std::cout << "sending list\n" << str;
+
+                boost::asio::write(sock, boost::asio::buffer(str.c_str(), str.size()));
+                    
+            }
+        }
     }
 
     void on_availability(vsomeip::service_t _service, vsomeip::instance_t _instance, bool _is_available) {
@@ -230,35 +279,67 @@ public:
     void sender() {
 
         int old_val = 0;
-        while(true){
-            /* TODO: get steering angle from head unit app */
+        tcp::acceptor a(io_service, tcp::endpoint(tcp::v4(), 5688));
+        for (;;)
+        {
+            tcp::socket sock(io_service);
+            a.accept(sock);
+            bool conn = true;
+            while(conn){
+                char data[10];
 
-            if(is_available_ && old_val != steer_angle){
-                std::shared_ptr< vsomeip::payload > its_payload = vsomeip::runtime::get()->create_payload();
-                unsigned char bytes[sizeof steer_angle];
+                boost::system::error_code error;
+                size_t length = sock.read_some(boost::asio::buffer(data), error);
 
-                int angle = steer_angle;
-                for(int i=sizeof steer_angle; i>0; --i){
-                    bytes[i-1] = (unsigned char)(angle & 0xff);
-                    angle = angle >> 8;
+                if (error == boost::asio::error::eof){
+                    conn = false;
+                    //break; // Connection closed cleanly by peer.
+                }
+                else if (error){
+
+                    std::cout << "something err\n";
+                    continue;
                 }
 
-                for(int i=0;i < sizeof steer_angle; ++i)
-                    std::cout << std::setw(2) << std::setfill('0') << std::hex << (unsigned int)bytes[i] << " ";
-                std::cout << std::endl;
+                //std::cout << "packet len: " << length << std::endl;
+                if(length < 4){
+                    continue;
+                }
 
-                its_payload->set_data(bytes, sizeof steer_angle);
-                request_->set_payload(its_payload);
-                app_->send(request_, true);
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                old_val = steer_angle;
-            }else{
 
-                std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-                steer_angle +=100;
-                if(steer_angle > 500) steer_angle = -500;
+                steer_angle = *((int *)data);
+
+                std::cout << "steering angle is " << std::dec<< steer_angle << std::endl;
+
+                if(is_available_ && old_val != steer_angle){
+                    std::shared_ptr< vsomeip::payload > its_payload = vsomeip::runtime::get()->create_payload();
+                    unsigned char bytes[sizeof steer_angle];
+
+                    int angle = steer_angle;
+                    for(int i=sizeof steer_angle; i>0; --i){
+                        bytes[i-1] = (unsigned char)(angle & 0xff);
+                        angle = angle >> 8;
+                    }
+
+                    for(int i=0;i < sizeof steer_angle; ++i)
+                        std::cout << std::setw(2) << std::setfill('0') << std::hex << (unsigned int)bytes[i] << " ";
+                    std::cout << std::endl;
+
+                    its_payload->set_data(bytes, sizeof steer_angle);
+                    request_->set_payload(its_payload);
+                    app_->send(request_, true);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    old_val = steer_angle;
+                }else{
+
+                    /*
+                       std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+                       steer_angle +=100;
+                       if(steer_angle > 500) steer_angle = -500;
+                       */
+                }
+
             }
-
         }
     }
 
@@ -276,6 +357,8 @@ private:
     std::thread offer_thread_;
     std::thread dev_mgr_thread_;
     std::map<std::string, std::chrono::system_clock::time_point> dev_map;
+    boost::asio::io_service io_service_dev;
+    std::thread dev_send_thread_;
 
     // members for steering request
     std::shared_ptr< vsomeip::message > request_;
@@ -283,6 +366,8 @@ private:
     std::thread thr_sender_;
     int steer_angle;
     std::condition_variable condition_map;
+    boost::asio::io_service io_service;
+
 };
 
 #ifndef VSOMEIP_ENABLE_SIGNAL_HANDLING
@@ -298,10 +383,14 @@ int main(int argc, char **argv) {
     bool use_static_routing(false);
 
     std::string static_routing_enable("--static-routing");
+    std::string opt_example("--example");
 
+    is_example = false;
     for (int i = 1; i < argc; i++) {
         if (static_routing_enable == argv[i]) {
             use_static_routing = true;
+        } else if (opt_example == argv[i]) {
+            is_example = true;
         }
     }
 

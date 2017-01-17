@@ -32,10 +32,13 @@ target_link_libraries(subscribe-sample ${VSOMEIP_LIB} ${Boost_LIBRARIES} ${DL_LI
 add_executable(notify-sample notify-sample.cpp ${EXAMPLE_CONFIG_FILES})
 target_link_libraries(notify-sample ${VSOMEIP_LIB} ${Boost_LIBRARIES} ${DL_LIBRARY})
 
-add_dependencies(examples request-sample response-sample subscribe-sample notify-sample)
+add_executable(lidar-sample lidar-sample.cpp ${EXAMPLE_CONFIG_FILES})
+target_link_libraries(lidar-sample ${VSOMEIP_LIB} ${Boost_LIBRARIES} ${DL_LIBRARY})
+
+add_dependencies(examples request-sample response-sample subscribe-sample notify-sample lidar-sample)
 
 install (
-    TARGETS request-sample response-sample subscribe-sample notify-sample
+    TARGETS request-sample response-sample subscribe-sample notify-sample lidar-sample
     RUNTIME DESTINATION "${INSTALL_BIN_DIR}" COMPONENT bin
 )
 
