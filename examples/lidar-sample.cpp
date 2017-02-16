@@ -175,7 +175,7 @@ public:
 
         std::shared_ptr<vsomeip::payload> resp_payload
             = vsomeip::runtime::get()->create_payload();
-        std::string str("192.168.101.111:12345"); //edit as appropriate address
+        std::string str("192.168.50.111:12345"); //edit as appropriate address
         std::vector<vsomeip::byte_t> its_payload_data(str.begin(), str.end());
         its_payload_data.push_back('\0');
         resp_payload->set_data(its_payload_data);
